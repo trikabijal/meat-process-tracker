@@ -4,17 +4,28 @@ import { Batch, ProcessStep, ProcessStage } from "@/types/batch";
 export const getStageColor = (stage: ProcessStage): string => {
   switch (stage) {
     case 'preprocessing':
-      return 'border-l-orange-500 bg-orange-50';
+      return 'border-l-orange-600 bg-orange-100';
     case 'processing':
-      return 'border-l-yellow-500 bg-yellow-50';
+      return 'border-l-yellow-600 bg-yellow-100';
     case 'packaging':
-      return 'border-l-blue-500 bg-blue-50';
+      return 'border-l-blue-600 bg-blue-100';
     default:
       return 'border-l-gray-500 bg-gray-50';
   }
 };
 
 export const getCurrentStage = (batch: Batch, processingSteps: ProcessStep[]): ProcessStage => {
+  // If batch is completed, determine final stage based on last completed step
+  if (batch.status === 'completed') {
+    const lastCompletedStep = Math.max(...batch.checkpoints
+      .filter(cp => cp.status === 'approved')
+      .map(cp => cp.stepNumber)
+    );
+    
+    const lastStepData = processingSteps.find(step => step.id === lastCompletedStep);
+    return lastStepData?.stage || 'packaging'; // Default to packaging if completed
+  }
+  
   const currentStepData = processingSteps.find(step => step.id === batch.currentStep);
   return currentStepData?.stage || 'preprocessing';
 };
