@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Batch } from "@/pages/Index";
 
 interface CreateBatchDialogProps {
@@ -13,25 +15,41 @@ interface CreateBatchDialogProps {
   onCreateBatch: (batch: Omit<Batch, 'id' | 'checkpoints' | 'status' | 'currentStep'>) => void;
 }
 
-const rawMaterials = [
-  { name: "Chicken Breast", code: "CHB" },
-  { name: "Chicken Thigh", code: "CHT" },
-  { name: "Chicken Wings", code: "CHW" },
-  { name: "Chicken Drumstick", code: "CHD" },
-  { name: "Whole Chicken", code: "WHC" },
-  { name: "Mutton Pieces", code: "MUT" },
-  { name: "Mutton Leg", code: "MUL" },
-  { name: "Mutton Shoulder", code: "MUS" },
-  { name: "Goat Meat", code: "GMT" },
-  { name: "Fish Fillet", code: "FIF" },
-  { name: "Fish Whole", code: "FIW" },
-  { name: "Prawns Large", code: "PRL" },
-  { name: "Prawns Medium", code: "PRM" },
-  { name: "Beef Cuts", code: "BFC" },
-  { name: "Beef Mince", code: "BFM" },
-  { name: "Duck Breast", code: "DCB" },
-  { name: "Turkey Breast", code: "TKB" }
-];
+const rawMaterials = {
+  frozen: [
+    { name: "Frozen Chicken Breast", code: "CHB" },
+    { name: "Frozen Chicken Thigh", code: "CHT" },
+    { name: "Frozen Chicken Wings", code: "CHW" },
+    { name: "Frozen Chicken Drumstick", code: "CHD" },
+    { name: "Frozen Whole Chicken", code: "WHC" },
+    { name: "Frozen Mutton Pieces", code: "MUT" },
+    { name: "Frozen Mutton Leg", code: "MUL" },
+    { name: "Frozen Beef Cuts", code: "BFC" },
+    { name: "Frozen Fish Fillet", code: "FIF" },
+    { name: "Frozen Prawns Large", code: "PRL" }
+  ],
+  chilled: [
+    { name: "Chilled Chicken Breast", code: "CCB" },
+    { name: "Chilled Chicken Thigh", code: "CCT" },
+    { name: "Chilled Mutton Pieces", code: "CMT" },
+    { name: "Chilled Beef Cuts", code: "CBC" },
+    { name: "Chilled Fish Whole", code: "CFW" },
+    { name: "Chilled Duck Breast", code: "CDB" }
+  ],
+  seasonings: [
+    { name: "Salt", code: "SLT" },
+    { name: "Black Pepper", code: "BPP" },
+    { name: "Garlic Powder", code: "GAR" },
+    { name: "Onion Powder", code: "ONP" },
+    { name: "Paprika", code: "PAP" }
+  ],
+  packaging: [
+    { name: "Vacuum Bags", code: "VBG" },
+    { name: "Thermoform Trays", code: "TFT" },
+    { name: "Labels", code: "LBL" },
+    { name: "Cartons", code: "CTN" }
+  ]
+};
 
 const supplierCodes = [
   "SYR", "ABC", "DEF", "GHI", "JKL", "MNO", "PQR", "STU", "VWX", "YZA"
@@ -46,13 +64,15 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
   const [formData, setFormData] = useState({
     batchNumber: '',
     rawMaterial: '',
+    rawMaterialType: 'frozen' as 'frozen' | 'chilled' | 'seasonings' | 'packaging',
     quantity: '',
     unit: 'kg',
     supplierCode: ''
   });
 
   const generateBatchNumber = () => {
-    const selectedMaterial = rawMaterials.find(rm => rm.name === formData.rawMaterial);
+    const materialsList = rawMaterials[formData.rawMaterialType];
+    const selectedMaterial = materialsList.find(rm => rm.name === formData.rawMaterial);
     if (!selectedMaterial) return '';
     
     const date = new Date();
@@ -67,7 +87,7 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.rawMaterial || !formData.quantity) {
+    if (!formData.rawMaterial || !formData.quantity || !formData.rawMaterialType) {
       return;
     }
 
@@ -76,6 +96,7 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
     onCreateBatch({
       batchNumber,
       rawMaterial: formData.rawMaterial,
+      rawMaterialType: formData.rawMaterialType,
       quantity: parseFloat(formData.quantity),
       unit: formData.unit,
       startTime: new Date()
@@ -85,56 +106,124 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
     setFormData({
       batchNumber: '',
       rawMaterial: '',
+      rawMaterialType: 'frozen',
       quantity: '',
       unit: 'kg',
       supplierCode: ''
     });
   };
 
+  const availableMaterials = rawMaterials[formData.rawMaterialType] || [];
+  const typeColors = {
+    frozen: 'bg-blue-100 text-blue-800 border-blue-200',
+    chilled: 'bg-green-100 text-green-800 border-green-200',
+    seasonings: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+    packaging: 'bg-purple-100 text-purple-800 border-purple-200'
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>Create New Batch</DialogTitle>
+          <DialogTitle>Create New Production Batch</DialogTitle>
           <DialogDescription>
-            Start a new processing batch. Batch number format: [Material Code][Day][Month][Year][Supplier Code]
+            Start a new processing batch for Frozen/Chilled foods or other materials.
+            <br />
+            Batch format: [Material Code][Day][Month][Year][Supplier Code]
             <br />
             Example: CHB27F25SYR (Chicken Breast, 27th June 2025, Supplier SYR)
           </DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Raw Material Type Selection */}
+          <Card className="border-2 border-dashed border-gray-200">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Material Type Selection</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Label htmlFor="materialType">Raw Material Type *</Label>
+                <Select
+                  value={formData.rawMaterialType}
+                  onValueChange={(value: 'frozen' | 'chilled' | 'seasonings' | 'packaging') => {
+                    setFormData(prev => ({
+                      ...prev, 
+                      rawMaterialType: value,
+                      rawMaterial: '', // Reset material when type changes
+                      batchNumber: '' // Reset batch number
+                    }));
+                  }}
+                  required
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select material type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="frozen">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={typeColors.frozen}>Frozen Foods</Badge>
+                        <span>Primary focus - Complete process flow</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="chilled">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={typeColors.chilled}>Chilled Foods</Badge>
+                        <span>Primary focus - Complete process flow</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="seasonings">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={typeColors.seasonings}>Seasonings & Condiments</Badge>
+                        <span>Secondary material</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="packaging">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className={typeColors.packaging}>Packaging Material</Badge>
+                        <span>Secondary material</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Material Selection */}
           <div className="space-y-2">
-            <Label htmlFor="rawMaterial">Raw Material *</Label>
+            <Label htmlFor="rawMaterial">Specific Raw Material *</Label>
             <Select
               value={formData.rawMaterial}
               onValueChange={(value) => {
-                setFormData(prev => ({...prev, rawMaterial: value}));
+                setFormData(prev => ({...prev, rawMaterial: value, batchNumber: ''}));
                 // Auto-generate batch number when material changes
-                if (value && !formData.batchNumber) {
-                  setTimeout(() => {
-                    setFormData(current => ({
-                      ...current, 
-                      batchNumber: generateBatchNumber()
-                    }));
-                  }, 100);
-                }
+                setTimeout(() => {
+                  setFormData(current => ({
+                    ...current, 
+                    batchNumber: generateBatchNumber()
+                  }));
+                }, 100);
               }}
               required
             >
               <SelectTrigger>
-                <SelectValue placeholder="Select raw material" />
+                <SelectValue placeholder={`Select ${formData.rawMaterialType} material`} />
               </SelectTrigger>
               <SelectContent>
-                {rawMaterials.map(material => (
+                {availableMaterials.map(material => (
                   <SelectItem key={material.code} value={material.name}>
-                    {material.name} ({material.code})
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono">{material.code}</Badge>
+                      <span>{material.name}</span>
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Quantity and Unit */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="quantity">Quantity *</Label>
@@ -164,11 +253,13 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
                   <SelectItem value="pieces">pieces</SelectItem>
                   <SelectItem value="boxes">boxes</SelectItem>
                   <SelectItem value="tons">tons</SelectItem>
+                  <SelectItem value="liters">liters</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
+          {/* Supplier Code */}
           <div className="space-y-2">
             <Label htmlFor="supplierCode">Supplier Code</Label>
             <Select
@@ -197,19 +288,38 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
             </Select>
           </div>
 
+          {/* Generated Batch Number */}
           <div className="space-y-2">
-            <Label htmlFor="batchNumber">Batch Number</Label>
+            <Label htmlFor="batchNumber">Generated Batch Number</Label>
             <Input
               id="batchNumber"
               placeholder="Auto-generated based on selections"
               value={formData.batchNumber}
               onChange={(e) => setFormData(prev => ({...prev, batchNumber: e.target.value}))}
-              className="font-mono"
+              className="font-mono text-lg"
             />
             <p className="text-xs text-gray-500">
-              Format: Material Code + Day + Month + Year + Supplier Code
+              Format: [Material Code] + [Day] + [Month Code] + [Year] + [Supplier Code]
             </p>
           </div>
+
+          {/* Process Information */}
+          {(formData.rawMaterialType === 'frozen' || formData.rawMaterialType === 'chilled') && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className={typeColors[formData.rawMaterialType]}>
+                    {formData.rawMaterialType.toUpperCase()}
+                  </Badge>
+                  <span className="font-medium">Complete HACCP Process Flow</span>
+                </div>
+                <p className="text-sm text-blue-700">
+                  This batch will go through the full {formData.rawMaterialType} food processing workflow 
+                  with 5 Critical Control Points (CCPs) and comprehensive quality inspections.
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
