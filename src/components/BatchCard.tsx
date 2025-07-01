@@ -32,15 +32,15 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'approved':
-        return 'bg-green-600 text-white border-green-600';
+        return 'bg-green-50 text-green-800 border-green-200';
       case 'rejected':
-        return 'bg-red-600 text-white border-red-600';
+        return 'bg-red-50 text-red-800 border-red-200';
       case 'reprocess':
-        return 'bg-yellow-600 text-white border-yellow-600';
+        return 'bg-yellow-50 text-yellow-800 border-yellow-200';
       case 'in_progress':
-        return 'bg-yellow-600 text-white border-yellow-600';
+        return 'bg-blue-50 text-blue-800 border-blue-200';
       default:
-        return 'bg-gray-600 text-white border-gray-600';
+        return 'bg-gray-50 text-gray-600 border-gray-200';
     }
   };
 
@@ -168,14 +168,14 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
             return (
               <div key={checkpoint.id} className={`flex items-center justify-between p-2 rounded-lg border ${getStatusColor(checkpoint.status)}`}>
                 <div className="flex items-center gap-2 flex-1">
-                  <Badge variant="outline" className="text-xs font-mono min-w-[24px] bg-white text-gray-900 border-white">
+                  <Badge variant="outline" className="text-xs font-mono min-w-[24px] bg-white text-gray-900 border-gray-300">
                     #{checkpoint.stepNumber}
                   </Badge>
                   {getStatusIcon(checkpoint.status)}
                   <div className="flex-1 min-w-0">
                     <span className="text-sm font-medium block truncate">{checkpoint.name}</span>
                     {checkpoint.inspector && checkpoint.timestamp && (
-                      <span className="text-xs opacity-90">
+                      <span className="text-xs opacity-75">
                         {checkpoint.inspector} - {checkpoint.timestamp.toLocaleTimeString()}
                       </span>
                     )}
@@ -183,12 +183,12 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
                   
                   <div className="flex gap-1">
                     {checkpoint.isCCP && (
-                      <Badge variant="outline" className="text-xs bg-white text-red-700 border-white">
+                      <Badge variant="outline" className="text-xs bg-white text-red-700 border-red-300">
                         CCP
                       </Badge>
                     )}
                     {stepInfo?.estimatedTime && (
-                      <Badge variant="outline" className="text-xs bg-white text-gray-600 border-white">
+                      <Badge variant="outline" className="text-xs bg-white text-gray-600 border-gray-300">
                         {stepInfo.estimatedTime}m
                       </Badge>
                     )}
