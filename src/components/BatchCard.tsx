@@ -3,12 +3,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Clock, AlertTriangle, CheckCircle, XCircle, RotateCcw } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle, XCircle, RotateCcw, Thermometer, Scale, Eye } from "lucide-react";
 import { Batch, Checkpoint } from "@/pages/Index";
 
 interface BatchCardProps {
   batch: Batch;
-  processingSteps: Array<{id: number; name: string; isCCP: boolean}>;
+  processingSteps: Array<{id: number; name: string; isCCP: boolean; estimatedTime?: number}>;
   onCheckpointClick: (checkpoint: Checkpoint) => void;
   readonly?: boolean;
 }
@@ -48,14 +48,19 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
   const pendingCCPs = batch.checkpoints.filter(cp => cp.isCCP && cp.status === 'pending');
 
   const timeElapsed = Math.floor((Date.now() - batch.startTime.getTime()) / (1000 * 60 * 60));
+  const currentStepInfo = processingSteps.find(step => step.id === batch.currentStep);
+  
+  // Calculate estimated completion time
+  const remainingSteps = processingSteps.filter(step => step.id >= batch.currentStep);
+  const estimatedMinutesRemaining = remainingSteps.reduce((acc, step) => acc + (step.estimatedTime || 15), 0);
 
   return (
-    <Card className="h-full">
+    <Card className="h-full border-l-4 border-l-blue-500">
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
-            <CardTitle className="text-lg">{batch.batchNumber}</CardTitle>
-            <CardDescription>{batch.rawMaterial} - {batch.quantity} {batch.unit}</CardDescription>
+            <CardTitle className="text-lg font-mono">{batch.batchNumber}</CardTitle>
+            <CardDescription className="font-medium">{batch.rawMaterial} - {batch.quantity} {batch.unit}</CardDescription>
           </div>
           <Badge 
             variant="outline" 
@@ -65,58 +70,107 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
               'bg-red-100 text-red-800 border-red-200'
             }
           >
-            {batch.status}
+            {batch.status.toUpperCase()}
           </Badge>
         </div>
         
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm text-gray-600">
-            <span>Progress: {approvedSteps}/{totalSteps} steps</span>
-            <span>{timeElapsed}h elapsed</span>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
+            <div>
+              <span className="font-medium">Current Step:</span> #{batch.currentStep}
+            </div>
+            <div>
+              <span className="font-medium">Time Elapsed:</span> {timeElapsed}h
+            </div>
+            <div>
+              <span className="font-medium">Progress:</span> {approvedSteps}/{totalSteps} steps
+            </div>
+            <div>
+              <span className="font-medium">Est. Remaining:</span> ~{Math.ceil(estimatedMinutesRemaining / 60)}h
+            </div>
           </div>
-          <Progress value={progress} className="w-full" />
-        </div>
+          
+          <Progress value={progress} className="w-full h-2" />
+          
+          {currentStepInfo && (
+            <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-blue-900">Current: {currentStepInfo.name}</span>
+                <Badge variant="outline" className="text-xs">
+                  ~{currentStepInfo.estimatedTime || 15}min
+                </Badge>
+              </div>
+              {currentStepInfo.isCCP && (
+                <div className="flex items-center gap-1 text-xs text-red-700">
+                  <AlertTriangle className="h-3 w-3" />
+                  Critical Control Point
+                </div>
+              )}
+            </div>
+          )}
 
-        {pendingCCPs.length > 0 && (
-          <div className="flex items-center gap-2 p-2 bg-orange-50 rounded-lg border border-orange-200">
-            <AlertTriangle className="h-4 w-4 text-orange-600" />
-            <span className="text-sm text-orange-800 font-medium">
-              {pendingCCPs.length} Critical Control Point{pendingCCPs.length > 1 ? 's' : ''} pending
-            </span>
-          </div>
-        )}
+          {pendingCCPs.length > 0 && (
+            <div className="flex items-center gap-2 p-2 bg-red-50 rounded-lg border border-red-200">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <span className="text-sm text-red-800 font-medium">
+                {pendingCCPs.length} Critical Control Point{pendingCCPs.length > 1 ? 's' : ''} pending
+              </span>
+            </div>
+          )}
+        </div>
       </CardHeader>
 
       <CardContent className="space-y-3">
-        <div className="space-y-2">
-          {batch.checkpoints.slice(0, 6).map((checkpoint) => (
-            <div key={checkpoint.id} className="flex items-center justify-between p-2 rounded-lg border">
-              <div className="flex items-center gap-2">
-                {getStatusIcon(checkpoint.status)}
-                <span className="text-sm font-medium">{checkpoint.name}</span>
-                {checkpoint.isCCP && (
-                  <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
-                    CCP
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {batch.checkpoints.slice(0, 8).map((checkpoint) => {
+            const stepInfo = processingSteps.find(step => step.id === checkpoint.stepNumber);
+            return (
+              <div key={checkpoint.id} className="flex items-center justify-between p-2 rounded-lg border bg-white">
+                <div className="flex items-center gap-2 flex-1">
+                  <Badge variant="outline" className="text-xs font-mono min-w-[24px]">
+                    #{checkpoint.stepNumber}
                   </Badge>
+                  {getStatusIcon(checkpoint.status)}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-sm font-medium block truncate">{checkpoint.name}</span>
+                    {checkpoint.inspector && checkpoint.timestamp && (
+                      <span className="text-xs text-gray-500">
+                        {checkpoint.inspector} - {checkpoint.timestamp.toLocaleTimeString()}
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className="flex gap-1">
+                    {checkpoint.isCCP && (
+                      <Badge variant="outline" className="text-xs bg-red-50 text-red-700 border-red-200">
+                        CCP
+                      </Badge>
+                    )}
+                    {stepInfo?.estimatedTime && (
+                      <Badge variant="outline" className="text-xs text-gray-600">
+                        {stepInfo.estimatedTime}m
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                
+                {!readonly && checkpoint.status === 'pending' && checkpoint.stepNumber <= batch.currentStep && (
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => onCheckpointClick(checkpoint)}
+                    className="text-xs ml-2"
+                  >
+                    Inspect
+                  </Button>
                 )}
               </div>
-              
-              {!readonly && checkpoint.status === 'pending' && checkpoint.stepNumber <= batch.currentStep && (
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => onCheckpointClick(checkpoint)}
-                  className="text-xs"
-                >
-                  Inspect
-                </Button>
-              )}
-            </div>
-          ))}
+            );
+          })}
           
-          {batch.checkpoints.length > 6 && (
+          {batch.checkpoints.length > 8 && (
             <div className="text-xs text-gray-500 text-center">
-              +{batch.checkpoints.length - 6} more steps...
+              +{batch.checkpoints.length - 8} more steps...
             </div>
           )}
         </div>
@@ -124,9 +178,16 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
         {currentCheckpoint && !readonly && (
           <Button 
             onClick={() => onCheckpointClick(currentCheckpoint)}
-            className="w-full bg-blue-600 hover:bg-blue-700"
+            className="w-full bg-blue-600 hover:bg-blue-700 h-12"
           >
-            {currentCheckpoint.isCCP ? 'Process Critical Checkpoint' : 'Process Current Step'}
+            <div className="text-center">
+              <div className="font-medium">
+                {currentCheckpoint.isCCP ? 'Process Critical Checkpoint' : 'Process Current Step'}
+              </div>
+              <div className="text-xs opacity-90">
+                Step #{currentCheckpoint.stepNumber}: {currentCheckpoint.name}
+              </div>
+            </div>
           </Button>
         )}
       </CardContent>

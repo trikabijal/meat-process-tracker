@@ -1,13 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Factory, AlertTriangle, CheckCircle, Clock, XCircle } from "lucide-react";
+import { Plus, Factory, AlertTriangle, CheckCircle, Clock, XCircle, Settings } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import BatchCard from "@/components/BatchCard";
 import CreateBatchDialog from "@/components/CreateBatchDialog";
 import CheckpointInterface from "@/components/CheckpointInterface";
+import ProcessStepsManager from "@/components/ProcessStepsManager";
 
 export interface Batch {
   id: string;
@@ -30,25 +30,156 @@ export interface Checkpoint {
   inspector?: string;
   timestamp?: Date;
   notes?: string;
+  metrics?: QualityMetric[];
 }
 
-const processingSteps = [
-  { id: 1, name: "Raw Material Reception", isCCP: false },
-  { id: 2, name: "Initial Inspection", isCCP: true },
-  { id: 3, name: "Cleaning & Washing", isCCP: false },
-  { id: 4, name: "Temperature Check", isCCP: true },
-  { id: 5, name: "Processing", isCCP: true },
-  { id: 6, name: "Quality Control", isCCP: true },
-  { id: 7, name: "Packaging", isCCP: false },
-  { id: 8, name: "Final Inspection", isCCP: true },
-  { id: 9, name: "Cold Storage", isCCP: true },
-  { id: 10, name: "Dispatch", isCCP: false }
+export interface QualityMetric {
+  id: string;
+  name: string;
+  type: 'temperature' | 'weight' | 'visual' | 'ph' | 'moisture' | 'count';
+  value?: number | string;
+  unit?: string;
+  minValue?: number;
+  maxValue?: number;
+  required: boolean;
+  passed?: boolean;
+}
+
+export interface ProcessStep {
+  id: number;
+  name: string;
+  isCCP: boolean;
+  estimatedTime: number; // in minutes
+  description: string;
+  metrics: QualityMetric[];
+}
+
+const defaultProcessingSteps: ProcessStep[] = [
+  { 
+    id: 1, 
+    name: "Raw Material Reception", 
+    isCCP: false, 
+    estimatedTime: 15,
+    description: "Receive and log incoming raw materials",
+    metrics: [
+      { id: "rm1", name: "Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
+      { id: "rm2", name: "Weight", type: "weight", unit: "kg", required: true },
+      { id: "rm3", name: "Visual Inspection", type: "visual", required: true }
+    ]
+  },
+  { 
+    id: 2, 
+    name: "Initial Inspection", 
+    isCCP: true, 
+    estimatedTime: 20,
+    description: "Critical quality check of raw materials",
+    metrics: [
+      { id: "ii1", name: "Color Assessment", type: "visual", required: true },
+      { id: "ii2", name: "Odor Check", type: "visual", required: true },
+      { id: "ii3", name: "Texture Check", type: "visual", required: true },
+      { id: "ii4", name: "pH Level", type: "ph", unit: "pH", minValue: 5.5, maxValue: 6.5, required: true }
+    ]
+  },
+  { 
+    id: 3, 
+    name: "Cleaning & Washing", 
+    isCCP: false, 
+    estimatedTime: 30,
+    description: "Thorough cleaning and sanitization",
+    metrics: [
+      { id: "cw1", name: "Water Temperature", type: "temperature", unit: "°C", minValue: 15, maxValue: 25, required: true },
+      { id: "cw2", name: "Cleaning Time", type: "count", unit: "minutes", minValue: 20, maxValue: 40, required: true }
+    ]
+  },
+  { 
+    id: 4, 
+    name: "Temperature Check", 
+    isCCP: true, 
+    estimatedTime: 10,
+    description: "Verify proper temperature maintenance",
+    metrics: [
+      { id: "tc1", name: "Core Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
+      { id: "tc2", name: "Surface Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true }
+    ]
+  },
+  { 
+    id: 5, 
+    name: "Processing", 
+    isCCP: true, 
+    estimatedTime: 45,
+    description: "Main processing operations",
+    metrics: [
+      { id: "pr1", name: "Processing Temperature", type: "temperature", unit: "°C", minValue: 75, maxValue: 85, required: true },
+      { id: "pr2", name: "Processing Time", type: "count", unit: "minutes", minValue: 30, maxValue: 60, required: true },
+      { id: "pr3", name: "Weight Loss", type: "weight", unit: "%", maxValue: 15, required: true }
+    ]
+  },
+  { 
+    id: 6, 
+    name: "Quality Control", 
+    isCCP: true, 
+    estimatedTime: 25,
+    description: "Comprehensive quality assessment",
+    metrics: [
+      { id: "qc1", name: "Final Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
+      { id: "qc2", name: "Moisture Content", type: "moisture", unit: "%", minValue: 65, maxValue: 75, required: true },
+      { id: "qc3", name: "Visual Quality", type: "visual", required: true },
+      { id: "qc4", name: "Contamination Check", type: "visual", required: true }
+    ]
+  },
+  { 
+    id: 7, 
+    name: "Packaging", 
+    isCCP: false, 
+    estimatedTime: 20,
+    description: "Package products according to standards",
+    metrics: [
+      { id: "pk1", name: "Package Weight", type: "weight", unit: "kg", required: true },
+      { id: "pk2", name: "Seal Integrity", type: "visual", required: true }
+    ]
+  },
+  { 
+    id: 8, 
+    name: "Final Inspection", 
+    isCCP: true, 
+    estimatedTime: 15,
+    description: "Final quality verification before storage",
+    metrics: [
+      { id: "fi1", name: "Label Check", type: "visual", required: true },
+      { id: "fi2", name: "Package Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
+      { id: "fi3", name: "Barcode Scan", type: "visual", required: true }
+    ]
+  },
+  { 
+    id: 9, 
+    name: "Cold Storage", 
+    isCCP: true, 
+    estimatedTime: 5,
+    description: "Transfer to cold storage facility",
+    metrics: [
+      { id: "cs1", name: "Storage Temperature", type: "temperature", unit: "°C", minValue: -2, maxValue: 2, required: true },
+      { id: "cs2", name: "Humidity Level", type: "moisture", unit: "%", minValue: 80, maxValue: 95, required: true }
+    ]
+  },
+  { 
+    id: 10, 
+    name: "Dispatch", 
+    isCCP: false, 
+    estimatedTime: 10,
+    description: "Prepare for shipment",
+    metrics: [
+      { id: "dp1", name: "Transport Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
+      { id: "dp2", name: "Documentation Check", type: "visual", required: true }
+    ]
+  }
 ];
 
 const Index = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showProcessManager, setShowProcessManager] = useState(false);
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<{batch: Batch, checkpoint: Checkpoint} | null>(null);
+  const [processingSteps, setProcessingSteps] = useState<ProcessStep[]>(defaultProcessingSteps);
   const { toast } = useToast();
 
   // Initialize with sample data
@@ -103,7 +234,8 @@ const Index = () => {
         stepNumber: step.id,
         name: step.name,
         isCCP: step.isCCP,
-        status: step.id === 1 ? 'pending' : 'pending'
+        status: step.id === 1 ? 'pending' : 'pending',
+        metrics: step.metrics.map(metric => ({ ...metric, passed: undefined }))
       }))
     };
     
@@ -115,7 +247,7 @@ const Index = () => {
     });
   };
 
-  const handleCheckpointAction = (batchId: string, checkpointId: string, action: 'approved' | 'rejected' | 'reprocess', notes?: string) => {
+  const handleCheckpointAction = (batchId: string, checkpointId: string, action: 'approved' | 'rejected' | 'reprocess', notes?: string, metrics?: QualityMetric[]) => {
     setBatches(prev => prev.map(batch => {
       if (batch.id === batchId) {
         const updatedCheckpoints = batch.checkpoints.map(checkpoint => {
@@ -125,7 +257,8 @@ const Index = () => {
               status: action,
               inspector: "Current User",
               timestamp: new Date(),
-              notes
+              notes,
+              metrics: metrics || checkpoint.metrics
             };
           }
           return checkpoint;
@@ -154,7 +287,7 @@ const Index = () => {
     setSelectedCheckpoint(null);
     toast({
       title: "Checkpoint Updated",
-      description: `Checkpoint ${action} successfully.`,
+      description: `Step ${selectedCheckpoint?.checkpoint.stepNumber} ${action} successfully.`,
     });
   };
 
@@ -171,11 +304,23 @@ const Index = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            <Factory className="h-8 w-8 text-blue-600" />
-            <h1 className="text-3xl font-bold text-gray-900">Non-Veg Processing Factory</h1>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Factory className="h-8 w-8 text-blue-600" />
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Non-Veg Processing Factory</h1>
+                <p className="text-gray-600">Real-time batch monitoring and quality control system</p>
+              </div>
+            </div>
+            <Button 
+              onClick={() => setShowProcessManager(true)} 
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Manage Process Steps
+            </Button>
           </div>
-          <p className="text-gray-600">Real-time batch monitoring and quality control system</p>
         </div>
 
         {/* Stats Cards */}
@@ -223,7 +368,10 @@ const Index = () => {
 
         {/* Actions */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-semibold text-gray-900">Active Batches</h2>
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">Active Batches</h2>
+            <p className="text-sm text-gray-600">Total {processingSteps.length} process steps configured</p>
+          </div>
           <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
             New Batch
@@ -301,12 +449,20 @@ const Index = () => {
         onCreateBatch={handleCreateBatch}
       />
 
+      <ProcessStepsManager
+        open={showProcessManager}
+        onOpenChange={setShowProcessManager}
+        processingSteps={processingSteps}
+        onUpdateSteps={setProcessingSteps}
+      />
+
       {selectedCheckpoint && (
         <CheckpointInterface
           open={!!selectedCheckpoint}
           onOpenChange={() => setSelectedCheckpoint(null)}
           batch={selectedCheckpoint.batch}
           checkpoint={selectedCheckpoint.checkpoint}
+          processStep={processingSteps.find(step => step.id === selectedCheckpoint.checkpoint.stepNumber)}
           onAction={handleCheckpointAction}
         />
       )}
