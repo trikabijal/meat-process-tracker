@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -84,7 +85,7 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
             className={
               batch.status === 'active' ? 'bg-blue-100 text-blue-800 border-blue-200' :
               batch.status === 'completed' ? 'bg-green-100 text-green-800 border-green-200' :
-              batch.status === 'rejected' ? 'bg-red-100 text-red-800 border-red-200'
+              'bg-red-100 text-red-800 border-red-200'
             }
           >
             {batch.status.toUpperCase()}
