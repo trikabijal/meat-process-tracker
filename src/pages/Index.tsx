@@ -1,17 +1,15 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus, Factory, AlertTriangle, CheckCircle, Clock, XCircle, Settings, Scan } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import BatchCard from "@/components/BatchCard";
-import BatchStatsCard from "@/components/BatchStatsCard";
-import BatchGrid from "@/components/BatchGrid";
+import DashboardHeader from "@/components/DashboardHeader";
+import BatchStatistics from "@/components/BatchStatistics";
+import DashboardContent from "@/components/DashboardContent";
 import CreateBatchDialog from "@/components/CreateBatchDialog";
 import CheckpointInterface from "@/components/CheckpointInterface";
 import ProcessStepsManager from "@/components/ProcessStepsManager";
 import QCScannerInterface from "@/components/QCScannerInterface";
 import { Batch, Checkpoint, QualityMetric, ProcessStep } from "@/types/batch";
 import { frozenChilledProcessSteps } from "@/data/processSteps";
-import { createSampleBatch, getCurrentStage, getStageColor } from "@/utils/batchUtils";
+import { createSampleBatch } from "@/utils/batchUtils";
 
 const Index = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -197,141 +195,28 @@ const Index = () => {
     setSelectedCheckpoint({ batch, checkpoint });
   };
 
-  // Calculate statistics
-  const activeBatches = batches.filter(batch => batch.status === 'active');
-  const completedBatches = batches.filter(batch => batch.status === 'completed');
-  const rejectedBatches = batches.filter(batch => batch.status === 'rejected');
-  const pendingCCPs = batches.reduce((acc, batch) => {
-    const pendingCCPCount = batch.checkpoints.filter(cp => cp.isCCP && cp.status === 'pending').length;
-    return acc + pendingCCPCount;
-  }, 0);
-
   const totalCCPs = processingSteps.filter(step => step.isCCP).length;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 p-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <img 
-                src="/lovable-uploads/a1b4fd1c-52e2-4679-9f19-853535b5ead5.png" 
-                alt="Chatha Foods Limited" 
-                className="h-12 w-auto"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-gray-900">Chatha Foods Limited</h1>
-                <p className="text-gray-600">Real-time batch monitoring and quality control system</p>
-                <p className="text-sm text-gray-500">Process Steps: {processingSteps.length} | Critical Control Points (CCPs): {totalCCPs}</p>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => setShowQCScanner(true)} 
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Scan className="h-4 w-4" />
-                QC Scanner
-              </Button>
-              <Button 
-                onClick={() => setShowProcessManager(true)} 
-                variant="outline"
-                className="flex items-center gap-2"
-              >
-                <Settings className="h-4 w-4" />
-                Manage Process Steps
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-          <BatchStatsCard
-            title="Active Batches"
-            value={activeBatches.length}
-            description={`Frozen: ${activeBatches.filter(b => b.rawMaterialType === 'frozen').length} | Chilled: ${activeBatches.filter(b => b.rawMaterialType === 'chilled').length}`}
-            icon={Clock}
-            color="text-blue-600"
-          />
-          <BatchStatsCard
-            title="Pending CCPs"
-            value={pendingCCPs}
-            description="Critical checkpoints requiring attention"
-            icon={AlertTriangle}
-            color="text-orange-600"
-          />
-          <BatchStatsCard
-            title="Completed"
-            value={completedBatches.length}
-            description="Successfully processed batches"
-            icon={CheckCircle}
-            color="text-green-600"
-          />
-          <BatchStatsCard
-            title="Rejected"
-            value={rejectedBatches.length}
-            description="Quality failures"
-            icon={XCircle}
-            color="text-red-600"
-          />
-        </div>
-
-        {/* Actions */}
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h2 className="text-xl font-semibold text-gray-900">Active Production Batches</h2>
-            <p className="text-sm text-gray-600">
-              Material Types: Frozen & Chilled Foods | {totalCCPs} Critical Control Points (CCPs) configured
-            </p>
-            <p className="text-xs text-gray-500 mt-1">
-              🟠 Orange: Preprocessing Stage | 🟡 Yellow: Processing Stage | 🔵 Blue: Packaging & Dispatch Stage
-            </p>
-          </div>
-          <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-2" />
-            New Batch
-          </Button>
-        </div>
-
-        {/* Active Batches Grid */}
-        <BatchGrid
-          batches={activeBatches}
-          processingSteps={processingSteps}
-          onCheckpointClick={handleBatchCardCheckpointClick}
+        <DashboardHeader
+          totalProcessingSteps={processingSteps.length}
+          totalCCPs={totalCCPs}
+          onShowQCScanner={() => setShowQCScanner(true)}
+          onShowProcessManager={() => setShowProcessManager(true)}
+          onShowCreateDialog={() => setShowCreateDialog(true)}
         />
 
-        {activeBatches.length === 0 && (
-          <div className="text-center py-12">
-            <Factory className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No Active Batches</h3>
-            <p className="text-gray-500 mb-4">Start processing by creating a new batch for Frozen or Chilled foods</p>
-            <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
-              <Plus className="h-4 w-4 mr-2" />
-              Create First Batch
-            </Button>
-          </div>
-        )}
+        <BatchStatistics batches={batches} />
 
-        {/* Completed and Rejected Sections */}
-        <div className="mt-12 space-y-8">
-          <BatchGrid
-            batches={completedBatches}
-            processingSteps={processingSteps}
-            onCheckpointClick={() => {}}
-            readonly={true}
-            title="Completed Batches"
-          />
-          <BatchGrid
-            batches={rejectedBatches}
-            processingSteps={processingSteps}
-            onCheckpointClick={() => {}}
-            readonly={true}
-            title="Rejected Batches"
-          />
-        </div>
+        <DashboardContent
+          batches={batches}
+          processingSteps={processingSteps}
+          onCheckpointClick={handleBatchCardCheckpointClick}
+          onShowCreateDialog={() => setShowCreateDialog(true)}
+          totalCCPs={totalCCPs}
+        />
       </div>
 
       {/* Dialogs */}
