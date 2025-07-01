@@ -27,9 +27,7 @@ const DashboardHeader = ({
             className="h-12 w-auto"
           />
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Chatha Foods Limited</h1>
-            <p className="text-gray-600">Real-time batch monitoring and quality control system</p>
-            <p className="text-sm text-gray-500">Process Steps: {totalProcessingSteps} | Critical Control Points (CCPs): {totalCCPs}</p>
+            <p className="text-gray-900 text-lg font-semibold">Real Time Batch Monitoring and Quality Control System</p>
           </div>
         </div>
         <div className="flex gap-2">

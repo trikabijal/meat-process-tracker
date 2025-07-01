@@ -154,9 +154,21 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
             <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
               <div className="flex items-center justify-between mb-1">
                 <span className="font-medium text-blue-900">Current: {currentStepInfo.name}</span>
-                <Badge variant="outline" className="text-xs">
-                  ~{currentStepInfo.estimatedTime || 15}min
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs">
+                    ~{currentStepInfo.estimatedTime || 15}min
+                  </Badge>
+                  {!readonly && batch.status === 'active' && currentCheckpoint && (
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => onCheckpointClick(currentCheckpoint)}
+                      className="h-6 w-6 p-0 text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                    >
+                      <Eye className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
               </div>
               {currentStepInfo.isCCP && (
                 <div className="flex items-center gap-1 text-xs text-red-700">
