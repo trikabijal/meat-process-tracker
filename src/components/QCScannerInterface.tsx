@@ -21,17 +21,26 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
   const [foundBatch, setFoundBatch] = useState<Batch | null>(null);
 
   const handleScan = () => {
+    console.log('Scanning for batch:', scannedBatch);
     const batch = batches.find(b => b.batchNumber.toLowerCase() === scannedBatch.toLowerCase());
+    console.log('Found batch:', batch);
     setFoundBatch(batch || null);
   };
 
   const handleSelectBatch = () => {
     if (foundBatch) {
+      console.log('Selecting batch for inspection:', foundBatch.batchNumber);
       onBatchSelect(foundBatch);
       onOpenChange(false);
       setScannedBatch("");
       setFoundBatch(null);
     }
+  };
+
+  const handleQuickSelect = (batch: Batch) => {
+    console.log('Quick selecting batch:', batch.batchNumber);
+    setScannedBatch(batch.batchNumber);
+    setFoundBatch(batch);
   };
 
   const getStatusColor = (status: string) => {
@@ -45,6 +54,10 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
+  };
+
+  const getPendingCheckpointsCount = (batch: Batch) => {
+    return batch.checkpoints.filter(cp => cp.status === 'pending').length;
   };
 
   return (
@@ -71,6 +84,7 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
                 value={scannedBatch}
                 onChange={(e) => setScannedBatch(e.target.value)}
                 className="font-mono"
+                onKeyPress={(e) => e.key === 'Enter' && handleScan()}
               />
               <Button onClick={handleScan} variant="outline">
                 <Scan className="h-4 w-4" />
@@ -111,9 +125,20 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
                       </div>
                     </div>
 
+                    {/* Inspection Status */}
+                    <div className="space-y-2">
+                      <span className="font-medium text-sm">Inspection Status:</span>
+                      <div className="flex items-center gap-2 p-2 bg-white rounded border">
+                        <span className="text-sm">Pending Checkpoints:</span>
+                        <Badge variant="outline" className="bg-orange-100 text-orange-800">
+                          {getPendingCheckpointsCount(foundBatch)} remaining
+                        </Badge>
+                      </div>
+                    </div>
+
                     {/* Process Status */}
                     <div className="space-y-2">
-                      <span className="font-medium text-sm">Process Status:</span>
+                      <span className="font-medium text-sm">Process Overview:</span>
                       <div className="flex flex-wrap gap-1">
                         {foundBatch.checkpoints.slice(0, 6).map((checkpoint) => (
                           <div key={checkpoint.id} className="flex items-center gap-1">
@@ -131,7 +156,7 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
                     </div>
 
                     <Button onClick={handleSelectBatch} className="w-full bg-green-600 hover:bg-green-700">
-                      Start Quality Inspection
+                      🔍 Start Quality Inspection
                     </Button>
                   </CardContent>
                 </Card>
@@ -154,26 +179,33 @@ const QCScannerInterface = ({ open, onOpenChange, batches, onBatchSelect }: QCSc
           {/* Quick Access to Recent Batches */}
           {!scannedBatch && (
             <div className="space-y-3">
-              <Label>Recent Active Batches</Label>
+              <Label>🚀 Quick Access - Recent Active Batches</Label>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {batches.filter(b => b.status === 'active').slice(0, 5).map((batch) => (
                   <div
                     key={batch.id}
-                    className="flex items-center justify-between p-2 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                    onClick={() => {
-                      setScannedBatch(batch.batchNumber);
-                      setFoundBatch(batch);
-                    }}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => handleQuickSelect(batch)}
                   >
-                    <div>
+                    <div className="flex-1">
                       <span className="font-mono text-sm font-medium">{batch.batchNumber}</span>
                       <div className="text-xs text-gray-500">{batch.rawMaterial}</div>
                     </div>
-                    <Badge variant="outline" className="text-xs">
-                      Step #{batch.currentStep}
-                    </Badge>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs bg-orange-100 text-orange-800">
+                        {getPendingCheckpointsCount(batch)} pending
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        Step #{batch.currentStep}
+                      </Badge>
+                    </div>
                   </div>
                 ))}
+                {batches.filter(b => b.status === 'active').length === 0 && (
+                  <div className="text-center p-4 text-gray-500">
+                    No active batches available for inspection
+                  </div>
+                )}
               </div>
             </div>
           )}

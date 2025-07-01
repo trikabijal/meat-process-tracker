@@ -157,10 +157,44 @@ const Index = () => {
   };
 
   const handleQCBatchSelect = (batch: Batch) => {
-    const currentCheckpoint = batch.checkpoints.find(cp => cp.stepNumber === batch.currentStep && cp.status === 'pending');
+    console.log('QC Batch Selected:', batch.batchNumber);
+    console.log('Current Step:', batch.currentStep);
+    console.log('All Checkpoints:', batch.checkpoints.map(cp => ({ step: cp.stepNumber, status: cp.status })));
+    
+    // Find the current pending checkpoint
+    const currentCheckpoint = batch.checkpoints.find(cp => 
+      cp.stepNumber === batch.currentStep && cp.status === 'pending'
+    );
+    
+    console.log('Found Current Checkpoint:', currentCheckpoint);
+    
     if (currentCheckpoint) {
       setSelectedCheckpoint({ batch, checkpoint: currentCheckpoint });
+      console.log('Opening checkpoint interface for:', currentCheckpoint.name);
+    } else {
+      // If no exact match, find the next pending checkpoint
+      const nextPendingCheckpoint = batch.checkpoints.find(cp => cp.status === 'pending');
+      console.log('No current checkpoint found, trying next pending:', nextPendingCheckpoint);
+      
+      if (nextPendingCheckpoint) {
+        setSelectedCheckpoint({ batch, checkpoint: nextPendingCheckpoint });
+        console.log('Opening next pending checkpoint:', nextPendingCheckpoint.name);
+      } else {
+        toast({
+          title: "No Inspection Needed",
+          description: "This batch has no pending checkpoints for inspection.",
+          variant: "destructive"
+        });
+      }
     }
+  };
+
+  const handleBatchCardCheckpointClick = (batch: Batch, checkpoint: Checkpoint) => {
+    console.log('Dashboard Card Checkpoint Clicked:', checkpoint.name);
+    console.log('Checkpoint Status:', checkpoint.status);
+    console.log('Batch:', batch.batchNumber);
+    
+    setSelectedCheckpoint({ batch, checkpoint });
   };
 
   // Calculate statistics
@@ -266,7 +300,7 @@ const Index = () => {
         <BatchGrid
           batches={activeBatches}
           processingSteps={processingSteps}
-          onCheckpointClick={(batch, checkpoint) => setSelectedCheckpoint({batch, checkpoint})}
+          onCheckpointClick={handleBatchCardCheckpointClick}
         />
 
         {activeBatches.length === 0 && (
