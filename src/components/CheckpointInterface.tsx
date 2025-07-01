@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -172,7 +173,7 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
                   <span className="font-medium text-red-800">Critical Control Point ({checkpoint.ccpNumber})</span>
                 </div>
                 <p className="text-sm text-red-700">
-                  This is a critical checkpoint in the HACCP system. All quality parameters must be verified and within acceptable limits before approval. 
+                  This is a critical checkpoint in the quality control system. All quality parameters must be verified and within acceptable limits before approval. 
                   Documentation is mandatory for compliance.
                 </p>
               </CardContent>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Factory, AlertTriangle, CheckCircle, Clock, XCircle, Settings, Scan } from "lucide-react";
@@ -181,11 +180,15 @@ const Index = () => {
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Factory className="h-8 w-8 text-blue-600" />
+            <div className="flex items-center gap-4">
+              <img 
+                src="/lovable-uploads/a1b4fd1c-52e2-4679-9f19-853535b5ead5.png" 
+                alt="Chatha Foods Limited" 
+                className="h-12 w-auto"
+              />
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Non-Veg Processing Factory</h1>
-                <p className="text-gray-600">Real-time batch monitoring and HACCP compliance system</p>
+                <h1 className="text-3xl font-bold text-gray-900">Chatha Foods Limited</h1>
+                <p className="text-gray-600">Real-time batch monitoring and quality control system</p>
                 <p className="text-sm text-gray-500">Process Steps: {processingSteps.length} | Critical Control Points (CCPs): {totalCCPs}</p>
               </div>
             </div>
