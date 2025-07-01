@@ -4,11 +4,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Clock, AlertTriangle, CheckCircle, XCircle, RotateCcw, Thermometer, Scale, Eye } from "lucide-react";
-import { Batch, Checkpoint } from "@/pages/Index";
+import { Batch, Checkpoint, ProcessStep } from "@/types/batch";
+import { getCurrentStage, getStageColor } from "@/utils/batchUtils";
 
 interface BatchCardProps {
   batch: Batch;
-  processingSteps: Array<{id: number; name: string; isCCP: boolean; estimatedTime?: number}>;
+  processingSteps: ProcessStep[];
   onCheckpointClick: (checkpoint: Checkpoint) => void;
   readonly?: boolean;
 }
@@ -22,6 +23,8 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
         return <XCircle className="h-4 w-4 text-red-600" />;
       case 'reprocess':
         return <RotateCcw className="h-4 w-4 text-orange-600" />;
+      case 'in_progress':
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
       default:
         return <Clock className="h-4 w-4 text-gray-400" />;
     }
@@ -35,6 +38,8 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
         return 'bg-red-100 text-red-800 border-red-200';
       case 'reprocess':
         return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'in_progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200';
     }
@@ -46,6 +51,7 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
 
   const currentCheckpoint = batch.checkpoints.find(cp => cp.stepNumber === batch.currentStep && cp.status === 'pending');
   const pendingCCPs = batch.checkpoints.filter(cp => cp.isCCP && cp.status === 'pending');
+  const inProgressSteps = batch.checkpoints.filter(cp => cp.status === 'in_progress');
 
   const timeElapsed = Math.floor((Date.now() - batch.startTime.getTime()) / (1000 * 60 * 60));
   const currentStepInfo = processingSteps.find(step => step.id === batch.currentStep);
@@ -54,8 +60,19 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
   const remainingSteps = processingSteps.filter(step => step.id >= batch.currentStep);
   const estimatedMinutesRemaining = remainingSteps.reduce((acc, step) => acc + (step.estimatedTime || 15), 0);
 
+  // Get current stage and apply color
+  const currentStage = getCurrentStage(batch, processingSteps);
+  const stageColor = getStageColor(currentStage);
+
+  // Stage display names
+  const stageNames = {
+    'preprocessing': 'Pre-Processing (Orange Trays)',
+    'processing': 'Processing (Yellow Trays)', 
+    'packaging': 'Packaging & Dispatch (Blue Trays)'
+  };
+
   return (
-    <Card className="h-full border-l-4 border-l-blue-500">
+    <Card className={`h-full border-l-4 ${stageColor}`}>
       <CardHeader>
         <div className="flex justify-between items-start">
           <div>
@@ -75,6 +92,16 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
         </div>
         
         <div className="space-y-3">
+          {/* Stage Indicator */}
+          <div className="bg-white p-2 rounded-lg border">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Current Stage:</span>
+              <Badge variant="outline" className="text-xs">
+                {stageNames[currentStage]}
+              </Badge>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
             <div>
               <span className="font-medium">Current Step:</span> #{batch.currentStep}
@@ -106,6 +133,16 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
                   Critical Control Point
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Parallel Processing Indicator */}
+          {inProgressSteps.length > 1 && (
+            <div className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm text-yellow-800 font-medium">
+                {inProgressSteps.length} processes running in parallel
+              </span>
             </div>
           )}
 
@@ -154,7 +191,7 @@ const BatchCard = ({ batch, processingSteps, onCheckpointClick, readonly = false
                   </div>
                 </div>
                 
-                {!readonly && checkpoint.status === 'pending' && checkpoint.stepNumber <= batch.currentStep && (
+                {!readonly && (checkpoint.status === 'pending' || checkpoint.status === 'in_progress') && checkpoint.stepNumber <= batch.currentStep && (
                   <Button 
                     size="sm" 
                     variant="outline"
