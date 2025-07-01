@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle, XCircle, RotateCcw, AlertTriangle, Clock, Thermometer, Scale, Eye, Droplets } from "lucide-react";
+import { CheckCircle, XCircle, RotateCcw, AlertTriangle, Clock, Thermometer, Scale, Eye, Droplets, Percent } from "lucide-react";
 import { Batch, Checkpoint, ProcessStep, QualityMetric } from "@/pages/Index";
 
 interface CheckpointInterfaceProps {
@@ -31,6 +31,7 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
       case 'weight': return <Scale className="h-4 w-4" />;
       case 'visual': return <Eye className="h-4 w-4" />;
       case 'moisture': return <Droplets className="h-4 w-4" />;
+      case 'percentage': return <Percent className="h-4 w-4" />;
       default: return <Clock className="h-4 w-4" />;
     }
   };
@@ -48,6 +49,14 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
     
     if (typeof metric.value === 'number' && metric.minValue !== undefined && metric.maxValue !== undefined) {
       return metric.value >= metric.minValue && metric.value <= metric.maxValue;
+    }
+    
+    if (typeof metric.value === 'number' && metric.maxValue !== undefined && metric.minValue === undefined) {
+      return metric.value <= metric.maxValue;
+    }
+    
+    if (typeof metric.value === 'number' && metric.minValue !== undefined && metric.maxValue === undefined) {
+      return metric.value >= metric.minValue;
     }
     
     return true;
@@ -106,16 +115,17 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
             <Badge variant="outline" className="font-mono">Step #{checkpoint.stepNumber}</Badge>
             <DialogTitle className="flex items-center gap-2">
               {checkpoint.isCCP && <AlertTriangle className="h-5 w-5 text-red-600" />}
-              Quality Inspection: {checkpoint.name}
+              Quality Inspection
             </DialogTitle>
           </div>
-          <DialogDescription>
-            Batch {batch.batchNumber} - {batch.rawMaterial} ({batch.quantity} {batch.unit})
+          <DialogDescription className="text-left">
+            <div className="font-mono font-semibold text-lg text-blue-600">{checkpoint.name}</div>
+            <div className="mt-1">Batch {batch.batchNumber} - {batch.rawMaterial} ({batch.quantity} {batch.unit})</div>
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Batch & Process Info */}
+          {/* Process Info */}
           <Card className="bg-gray-50">
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center gap-2">
@@ -125,16 +135,10 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium">Batch Number:</span> {batch.batchNumber}
+                <span className="font-medium">Step:</span> {checkpoint.stepNumber} of 10
               </div>
               <div>
-                <span className="font-medium">Current Step:</span> {checkpoint.stepNumber} of 10
-              </div>
-              <div>
-                <span className="font-medium">Started:</span> {batch.startTime.toLocaleString()}
-              </div>
-              <div>
-                <span className="font-medium">Estimated Time:</span> {processStep?.estimatedTime || 15} minutes
+                <span className="font-medium">Est. Time:</span> {processStep?.estimatedTime || 15} minutes
               </div>
               <div className="col-span-2">
                 <span className="font-medium">Description:</span> {processStep?.description || 'No description available'}
@@ -160,7 +164,7 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
           {/* Quality Metrics */}
           <Card>
             <CardHeader>
-              <CardTitle>Quality Metrics</CardTitle>
+              <CardTitle>Quality Metrics ({metrics.filter(m => m.required).length} Required)</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {metrics.map((metric) => (
@@ -210,7 +214,7 @@ const CheckpointInterface = ({ open, onOpenChange, batch, checkpoint, processSte
                       />
                       {(metric.minValue !== undefined || metric.maxValue !== undefined) && (
                         <p className="text-xs text-gray-600">
-                          Acceptable range: {metric.minValue ?? '∞'} - {metric.maxValue ?? '∞'} {metric.unit}
+                          Acceptable range: {metric.minValue ?? 'No min'} - {metric.maxValue ?? 'No max'} {metric.unit}
                         </p>
                       )}
                     </div>

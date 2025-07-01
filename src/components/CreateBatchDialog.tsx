@@ -14,30 +14,54 @@ interface CreateBatchDialogProps {
 }
 
 const rawMaterials = [
-  "Chicken Breast",
-  "Chicken Thigh",
-  "Chicken Wings",
-  "Mutton Pieces",
-  "Goat Meat",
-  "Fish Fillet",
-  "Prawns",
-  "Beef Cuts"
+  { name: "Chicken Breast", code: "CHB" },
+  { name: "Chicken Thigh", code: "CHT" },
+  { name: "Chicken Wings", code: "CHW" },
+  { name: "Chicken Drumstick", code: "CHD" },
+  { name: "Whole Chicken", code: "WHC" },
+  { name: "Mutton Pieces", code: "MUT" },
+  { name: "Mutton Leg", code: "MUL" },
+  { name: "Mutton Shoulder", code: "MUS" },
+  { name: "Goat Meat", code: "GMT" },
+  { name: "Fish Fillet", code: "FIF" },
+  { name: "Fish Whole", code: "FIW" },
+  { name: "Prawns Large", code: "PRL" },
+  { name: "Prawns Medium", code: "PRM" },
+  { name: "Beef Cuts", code: "BFC" },
+  { name: "Beef Mince", code: "BFM" },
+  { name: "Duck Breast", code: "DCB" },
+  { name: "Turkey Breast", code: "TKB" }
 ];
+
+const supplierCodes = [
+  "SYR", "ABC", "DEF", "GHI", "JKL", "MNO", "PQR", "STU", "VWX", "YZA"
+];
+
+const monthCodes = {
+  1: "A", 2: "B", 3: "C", 4: "D", 5: "E", 6: "F",
+  7: "G", 8: "H", 9: "I", 10: "J", 11: "K", 12: "L"
+};
 
 const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDialogProps) => {
   const [formData, setFormData] = useState({
     batchNumber: '',
     rawMaterial: '',
     quantity: '',
-    unit: 'kg'
+    unit: 'kg',
+    supplierCode: ''
   });
 
   const generateBatchNumber = () => {
-    const prefix = formData.rawMaterial.substring(0, 3).toUpperCase();
+    const selectedMaterial = rawMaterials.find(rm => rm.name === formData.rawMaterial);
+    if (!selectedMaterial) return '';
+    
     const date = new Date();
-    const year = date.getFullYear();
-    const sequence = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-    return `${prefix}-${year}-${sequence}`;
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = monthCodes[date.getMonth() + 1 as keyof typeof monthCodes];
+    const year = date.getFullYear().toString().slice(-2);
+    const supplier = formData.supplierCode || 'SYR';
+    
+    return `${selectedMaterial.code}${day}${month}${year}${supplier}`;
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -62,36 +86,40 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
       batchNumber: '',
       rawMaterial: '',
       quantity: '',
-      unit: 'kg'
+      unit: 'kg',
+      supplierCode: ''
     });
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Create New Batch</DialogTitle>
           <DialogDescription>
-            Start a new processing batch. A unique batch number will be generated if not provided.
+            Start a new processing batch. Batch number format: [Material Code][Day][Month][Year][Supplier Code]
+            <br />
+            Example: CHB27F25SYR (Chicken Breast, 27th June 2025, Supplier SYR)
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="batchNumber">Batch Number (Optional)</Label>
-            <Input
-              id="batchNumber"
-              placeholder="Auto-generated if empty"
-              value={formData.batchNumber}
-              onChange={(e) => setFormData(prev => ({...prev, batchNumber: e.target.value}))}
-            />
-          </div>
-
-          <div className="space-y-2">
             <Label htmlFor="rawMaterial">Raw Material *</Label>
             <Select
               value={formData.rawMaterial}
-              onValueChange={(value) => setFormData(prev => ({...prev, rawMaterial: value}))}
+              onValueChange={(value) => {
+                setFormData(prev => ({...prev, rawMaterial: value}));
+                // Auto-generate batch number when material changes
+                if (value && !formData.batchNumber) {
+                  setTimeout(() => {
+                    setFormData(current => ({
+                      ...current, 
+                      batchNumber: generateBatchNumber()
+                    }));
+                  }, 100);
+                }
+              }}
               required
             >
               <SelectTrigger>
@@ -99,7 +127,9 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
               </SelectTrigger>
               <SelectContent>
                 {rawMaterials.map(material => (
-                  <SelectItem key={material} value={material}>{material}</SelectItem>
+                  <SelectItem key={material.code} value={material.name}>
+                    {material.name} ({material.code})
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -133,9 +163,52 @@ const CreateBatchDialog = ({ open, onOpenChange, onCreateBatch }: CreateBatchDia
                   <SelectItem value="kg">kg</SelectItem>
                   <SelectItem value="pieces">pieces</SelectItem>
                   <SelectItem value="boxes">boxes</SelectItem>
+                  <SelectItem value="tons">tons</SelectItem>
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="supplierCode">Supplier Code</Label>
+            <Select
+              value={formData.supplierCode}
+              onValueChange={(value) => {
+                setFormData(prev => ({...prev, supplierCode: value}));
+                // Auto-regenerate batch number when supplier changes
+                if (formData.rawMaterial) {
+                  setTimeout(() => {
+                    setFormData(current => ({
+                      ...current, 
+                      batchNumber: generateBatchNumber()
+                    }));
+                  }, 100);
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Select supplier code" />
+              </SelectTrigger>
+              <SelectContent>
+                {supplierCodes.map(code => (
+                  <SelectItem key={code} value={code}>{code}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="batchNumber">Batch Number</Label>
+            <Input
+              id="batchNumber"
+              placeholder="Auto-generated based on selections"
+              value={formData.batchNumber}
+              onChange={(e) => setFormData(prev => ({...prev, batchNumber: e.target.value}))}
+              className="font-mono"
+            />
+            <p className="text-xs text-gray-500">
+              Format: Material Code + Day + Month + Year + Supplier Code
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

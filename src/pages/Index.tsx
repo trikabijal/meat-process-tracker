@@ -36,7 +36,7 @@ export interface Checkpoint {
 export interface QualityMetric {
   id: string;
   name: string;
-  type: 'temperature' | 'weight' | 'visual' | 'ph' | 'moisture' | 'count';
+  type: 'temperature' | 'weight' | 'visual' | 'ph' | 'moisture' | 'count' | 'percentage';
   value?: number | string;
   unit?: string;
   minValue?: number;
@@ -57,119 +57,136 @@ export interface ProcessStep {
 const defaultProcessingSteps: ProcessStep[] = [
   { 
     id: 1, 
-    name: "Raw Material Reception", 
-    isCCP: false, 
-    estimatedTime: 15,
-    description: "Receive and log incoming raw materials",
+    name: "RECEIVING OF RAW CHICKEN (CHILLED: <4°C, FROZEN: <-18°C)", 
+    isCCP: true, 
+    estimatedTime: 20,
+    description: "Critical Control Point - Temperature verification and documentation",
     metrics: [
-      { id: "rm1", name: "Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
-      { id: "rm2", name: "Weight", type: "weight", unit: "kg", required: true },
-      { id: "rm3", name: "Visual Inspection", type: "visual", required: true }
+      { id: "rrc1", name: "Core Temperature", type: "temperature", unit: "°C", maxValue: 4, required: true },
+      { id: "rrc2", name: "Frozen Temperature", type: "temperature", unit: "°C", maxValue: -18, required: false },
+      { id: "rrc3", name: "Vehicle Temperature Log", type: "visual", required: true },
+      { id: "rrc4", name: "Delivery Documentation", type: "visual", required: true },
+      { id: "rrc5", name: "Packaging Integrity", type: "visual", required: true }
     ]
   },
   { 
     id: 2, 
-    name: "Initial Inspection", 
-    isCCP: true, 
-    estimatedTime: 20,
-    description: "Critical quality check of raw materials",
+    name: "STORAGE OF FROZEN/CHILLED MEAT (Chiller temp <4°C)", 
+    isCCP: false, 
+    estimatedTime: 15,
+    description: "Proper storage temperature maintenance",
     metrics: [
-      { id: "ii1", name: "Color Assessment", type: "visual", required: true },
-      { id: "ii2", name: "Odor Check", type: "visual", required: true },
-      { id: "ii3", name: "Texture Check", type: "visual", required: true },
-      { id: "ii4", name: "pH Level", type: "ph", unit: "pH", minValue: 5.5, maxValue: 6.5, required: true }
+      { id: "sfm1", name: "Storage Temperature", type: "temperature", unit: "°C", maxValue: 4, required: true },
+      { id: "sfm2", name: "Storage Time", type: "count", unit: "hours", required: true },
+      { id: "sfm3", name: "Storage Area Cleanliness", type: "visual", required: true }
     ]
   },
   { 
     id: 3, 
-    name: "Cleaning & Washing", 
+    name: "CHILLED MEAT R.O WATER + 0.2% ACETIC ACID DIP", 
     isCCP: false, 
-    estimatedTime: 30,
-    description: "Thorough cleaning and sanitization",
+    estimatedTime: 25,
+    description: "Chemical treatment as per customer requirement",
     metrics: [
-      { id: "cw1", name: "Water Temperature", type: "temperature", unit: "°C", minValue: 15, maxValue: 25, required: true },
-      { id: "cw2", name: "Cleaning Time", type: "count", unit: "minutes", minValue: 20, maxValue: 40, required: true }
+      { id: "aad1", name: "Acetic Acid Concentration", type: "percentage", unit: "%", minValue: 0.18, maxValue: 0.22, required: true },
+      { id: "aad2", name: "Water Quality (RO)", type: "visual", required: true },
+      { id: "aad3", name: "Dip Time", type: "count", unit: "minutes", minValue: 2, maxValue: 5, required: true },
+      { id: "aad4", name: "Solution Temperature", type: "temperature", unit: "°C", minValue: 2, maxValue: 8, required: true }
     ]
   },
   { 
     id: 4, 
-    name: "Temperature Check", 
+    name: "PHYSICAL INSPECTION-03-STAGE (BONES/FEATHERS/FOREIGN MATTER/BLOOD CLOTS/HAIRS)", 
     isCCP: true, 
-    estimatedTime: 10,
-    description: "Verify proper temperature maintenance",
+    estimatedTime: 30,
+    description: "Critical 3-stage physical inspection for contaminants",
     metrics: [
-      { id: "tc1", name: "Core Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
-      { id: "tc2", name: "Surface Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true }
+      { id: "pi1", name: "Bone Fragments Check", type: "visual", required: true },
+      { id: "pi2", name: "Feather Removal Verification", type: "visual", required: true },
+      { id: "pi3", name: "Foreign Matter Detection", type: "visual", required: true },
+      { id: "pi4", name: "Blood Clot Removal", type: "visual", required: true },
+      { id: "pi5", name: "Hair/Bristle Check", type: "visual", required: true },
+      { id: "pi6", name: "Inspection Stage Completion", type: "count", unit: "stages", minValue: 3, maxValue: 3, required: true }
     ]
   },
   { 
     id: 5, 
-    name: "Processing", 
+    name: "PROCESSING OF MEAT", 
     isCCP: true, 
     estimatedTime: 45,
-    description: "Main processing operations",
+    description: "Main meat processing operations with quality controls",
     metrics: [
-      { id: "pr1", name: "Processing Temperature", type: "temperature", unit: "°C", minValue: 75, maxValue: 85, required: true },
-      { id: "pr2", name: "Processing Time", type: "count", unit: "minutes", minValue: 30, maxValue: 60, required: true },
-      { id: "pr3", name: "Weight Loss", type: "weight", unit: "%", maxValue: 15, required: true }
+      { id: "pom1", name: "Processing Temperature", type: "temperature", unit: "°C", minValue: 2, maxValue: 6, required: true },
+      { id: "pom2", name: "Processing Time", type: "count", unit: "minutes", required: true },
+      { id: "pom3", name: "Equipment Sanitization", type: "visual", required: true },
+      { id: "pom4", name: "Operator Hygiene Check", type: "visual", required: true },
+      { id: "pom5", name: "Product Weight Loss", type: "percentage", unit: "%", maxValue: 10, required: true }
     ]
   },
   { 
     id: 6, 
-    name: "Quality Control", 
+    name: "METAL DETECTION", 
     isCCP: true, 
-    estimatedTime: 25,
-    description: "Comprehensive quality assessment",
+    estimatedTime: 10,
+    description: "Critical Control Point - Metal contamination detection",
     metrics: [
-      { id: "qc1", name: "Final Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
-      { id: "qc2", name: "Moisture Content", type: "moisture", unit: "%", minValue: 65, maxValue: 75, required: true },
-      { id: "qc3", name: "Visual Quality", type: "visual", required: true },
-      { id: "qc4", name: "Contamination Check", type: "visual", required: true }
+      { id: "md1", name: "Metal Detector Calibration", type: "visual", required: true },
+      { id: "md2", name: "Test Sample Pass", type: "visual", required: true },
+      { id: "md3", name: "Reject System Function", type: "visual", required: true },
+      { id: "md4", name: "Detection Sensitivity", type: "count", unit: "mm", maxValue: 2, required: true }
     ]
   },
   { 
     id: 7, 
-    name: "Packaging", 
+    name: "PACKAGING", 
     isCCP: false, 
     estimatedTime: 20,
-    description: "Package products according to standards",
+    description: "Product packaging with quality verification",
     metrics: [
-      { id: "pk1", name: "Package Weight", type: "weight", unit: "kg", required: true },
-      { id: "pk2", name: "Seal Integrity", type: "visual", required: true }
+      { id: "pkg1", name: "Package Weight Accuracy", type: "weight", unit: "kg", required: true },
+      { id: "pkg2", name: "Seal Integrity", type: "visual", required: true },
+      { id: "pkg3", name: "Label Verification", type: "visual", required: true },
+      { id: "pkg4", name: "Packaging Material Quality", type: "visual", required: true }
     ]
   },
   { 
     id: 8, 
-    name: "Final Inspection", 
+    name: "FINAL QUALITY CHECK", 
     isCCP: true, 
     estimatedTime: 15,
     description: "Final quality verification before storage",
     metrics: [
-      { id: "fi1", name: "Label Check", type: "visual", required: true },
-      { id: "fi2", name: "Package Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
-      { id: "fi3", name: "Barcode Scan", type: "visual", required: true }
+      { id: "fqc1", name: "Product Temperature", type: "temperature", unit: "°C", maxValue: 4, required: true },
+      { id: "fqc2", name: "Visual Quality Assessment", type: "visual", required: true },
+      { id: "fqc3", name: "Weight Verification", type: "weight", unit: "kg", required: true },
+      { id: "fqc4", name: "Microbiological Sample", type: "visual", required: true },
+      { id: "fqc5", name: "Documentation Complete", type: "visual", required: true }
     ]
   },
   { 
     id: 9, 
-    name: "Cold Storage", 
+    name: "COLD STORAGE", 
     isCCP: true, 
-    estimatedTime: 5,
-    description: "Transfer to cold storage facility",
+    estimatedTime: 10,
+    description: "Critical Control Point - Cold storage with temperature monitoring",
     metrics: [
       { id: "cs1", name: "Storage Temperature", type: "temperature", unit: "°C", minValue: -2, maxValue: 2, required: true },
-      { id: "cs2", name: "Humidity Level", type: "moisture", unit: "%", minValue: 80, maxValue: 95, required: true }
+      { id: "cs2", name: "Humidity Level", type: "percentage", unit: "%", minValue: 80, maxValue: 95, required: true },
+      { id: "cs3", name: "Storage Area Hygiene", type: "visual", required: true },
+      { id: "cs4", name: "Temperature Logger Function", type: "visual", required: true }
     ]
   },
   { 
     id: 10, 
-    name: "Dispatch", 
+    name: "DISPATCH", 
     isCCP: false, 
-    estimatedTime: 10,
-    description: "Prepare for shipment",
+    estimatedTime: 15,
+    description: "Final dispatch preparation and documentation",
     metrics: [
-      { id: "dp1", name: "Transport Temperature", type: "temperature", unit: "°C", minValue: 0, maxValue: 4, required: true },
-      { id: "dp2", name: "Documentation Check", type: "visual", required: true }
+      { id: "dsp1", name: "Transport Vehicle Temperature", type: "temperature", unit: "°C", maxValue: 4, required: true },
+      { id: "dsp2", name: "Loading Documentation", type: "visual", required: true },
+      { id: "dsp3", name: "Delivery Schedule Compliance", type: "visual", required: true },
+      { id: "dsp4", name: "Vehicle Hygiene Check", type: "visual", required: true }
     ]
   }
 ];
@@ -187,7 +204,7 @@ const Index = () => {
     const sampleBatches: Batch[] = [
       {
         id: "batch-001",
-        batchNumber: "CHK-2025-001",
+        batchNumber: "CHB27F25SYR",
         rawMaterial: "Chicken Breast",
         quantity: 500,
         unit: "kg",
@@ -204,7 +221,7 @@ const Index = () => {
       },
       {
         id: "batch-002",
-        batchNumber: "MUT-2025-002",
+        batchNumber: "MUT15F25ABC",
         rawMaterial: "Mutton Pieces",
         quantity: 250,
         unit: "kg",
@@ -370,7 +387,7 @@ const Index = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-xl font-semibold text-gray-900">Active Batches</h2>
-            <p className="text-sm text-gray-600">Total {processingSteps.length} process steps configured</p>
+            <p className="text-sm text-gray-600">Total {processingSteps.length} process steps configured | {processingSteps.filter(s => s.isCCP).length} Critical Control Points</p>
           </div>
           <Button onClick={() => setShowCreateDialog(true)} className="bg-blue-600 hover:bg-blue-700">
             <Plus className="h-4 w-4 mr-2" />
