@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Trash2, Edit, AlertTriangle, Clock } from "lucide-react";
-import { ProcessStep, QualityMetric } from "@/pages/Index";
+import { ProcessStep, QualityMetric } from "@/types/batch";
 
 interface ProcessStepsManagerProps {
   open: boolean;

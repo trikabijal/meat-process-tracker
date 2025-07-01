@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle, XCircle, RotateCcw, AlertTriangle, Clock, Thermometer, Scale, Eye, Droplets, Percent, HelpCircle, Timer, Gauge } from "lucide-react";
-import { Batch, Checkpoint, ProcessStep, QualityMetric } from "@/pages/Index";
+import { Batch, Checkpoint, ProcessStep, QualityMetric } from "@/types/batch";
 
 interface CheckpointInterfaceProps {
   open: boolean;
